@@ -1,7 +1,7 @@
 import json
 from matplotlib import pyplot as plt
 import numpy as np
-
+#mencoba update dengan commit berbeda
 # Memuat data histogram dari file JSON
 with open('histograms.json', 'r') as file:
     data = json.load(file)

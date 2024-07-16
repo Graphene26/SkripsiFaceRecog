@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import json
-
+#tambah ini 
 # Misalnya Anda memiliki array `histograms` dan `labels`
 histograms = [np.random.rand(256) for _ in range(10)]  # contoh histogram
 labels = list(range(10))  # contoh label
