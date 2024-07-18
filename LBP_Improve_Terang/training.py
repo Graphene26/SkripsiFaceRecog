@@ -4,13 +4,13 @@ import numpy as np
 from PIL import Image
 
 # Base directory for storing everything
-base_dir = "D:\\Skripsi\\Code Progress\\Final Code\\LBP_Improve_Terang"
+base_dir = r'LBP_Improve_Terang'
 
 # Using LBPHFaceRecognizer
 recognizer = cv2.face.LBPHFaceRecognizer_create()
 
 # Using LBP Cascade for face detection
-detector = cv2.CascadeClassifier(os.path.join(base_dir, 'lbpcascade_frontalface_improved.xml'))
+detector = cv2.CascadeClassifier(os.path.join(base_dir, 'Model', 'lbpcascade_frontalface_improved.xml'))
 
 # Function to get images and labels from dataset
 def getImagesWithLabels(path):
@@ -28,10 +28,13 @@ def getImagesWithLabels(path):
     return faceSamples, Ids
 
 # Get images and labels from dataset
-faces, Ids = getImagesWithLabels(os.path.join(base_dir, 'Dataset1'))
+faces, Ids = getImagesWithLabels(os.path.join(base_dir, 'Dataset'))
 
 # Train the face recognizer using the dataset
 recognizer.train(faces, np.array(Ids))
 
 # Save the trained face recognition model
-recognizer.save(os.path.join(base_dir, 'lbp_terang_improved_baru_dean.xml'))
+recognizer.save(os.path.join(base_dir, 'Dataset', 'lbp_terang1gelap.xml'))
+
+# Print a message indicating that training has completed
+print("Model Training Telah Selesai")

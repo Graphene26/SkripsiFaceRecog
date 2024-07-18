@@ -1,86 +1,114 @@
-import tkinter as tk
-from tkinter import simpledialog, messagebox
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QLineEdit, QMessageBox, QInputDialog
+from PyQt5.QtCore import QThread, pyqtSignal
 import subprocess
 import csv
 import os
-import serial
 
-# Define base directory and file locations
-# Lokasi database dan folder penyimpanan gambar
-base_dir = "D:\\Skripsi\\Code Progress\\Final Code\\LBP_Improve_Terang"
-
-
+base_dir = r'LBP_Improve_Terang'
 csv_file = os.path.join(base_dir, 'database.csv')
 
-# Adjust this to match your ESP32 serial port
-serial_port = 'COM9'
-baud_rate = 115200
+class EncryptionThread(QThread):
+    finished = pyqtSignal(str)
 
-def check_duplicate(id, name, csv_file):
-    """Check if the ID or name already exists in the CSV file."""
-    try:
-        with open(csv_file, mode='r') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                if row['ID'] == id or row['Nama'] == name:
-                    return f"ID {id} or Name {name} already exists in the database."
-    except FileNotFoundError:
-        return "File not found."
-    return None
+    def __init__(self, script_name, encryption_key=None):
+        super().__init__()
+        self.script_name = script_name
+        self.encryption_key = encryption_key
 
-def run_script(script_name, id=None, name=None):
-    """Function to run a separate Python script and handle outputs."""
-    args = ['python', os.path.join(base_dir, script_name)]
-    if id and name:
-        args.extend([id, name])
-    result = subprocess.run(args, capture_output=True, text=True)
-    if result.stdout:
-        print("Script Output:", result.stdout)
-    if result.stderr:
-        print("Script Error:", result.stderr)
+    def run(self):
+        args = ['python', os.path.join(base_dir, self.script_name), self.encryption_key]
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, check=True)
+            self.finished.emit(result.stdout)
+        except subprocess.CalledProcessError as e:
+            self.finished.emit("Error: " + e.stderr)
 
-def ask_user_details():
-    """Function to request ID and name from the user."""
-    id = simpledialog.askstring("Input", "Enter ID:", parent=root)
-    name = simpledialog.askstring("Input", "Enter Name:", parent=root)
-    if id and name:
-        duplicate_message = check_duplicate(id, name, csv_file)
-        if not duplicate_message:
-            run_script('rekam.py', id, name)
-        else:
-            messagebox.showwarning("Duplicate", duplicate_message)
+class App(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.active_threads = []  # Keep track of active threads
 
-def create_app(window):
-    """Create the GUI layout with buttons to execute scripts."""
-    window.title('Neuro Smart Door Lock')
-    window.geometry('750x480')
-    window.config(bg='#1a1a2e')
+    def initUI(self):
+        self.setWindowTitle('Neuro Smart Door Lock')
+        self.setGeometry(300, 300, 750, 480)
+        layout = QVBoxLayout()
 
-    label_info = tk.Label(window, text="Register Face Recognition", font=('Helvetica', 16), bg='#1a1a2e', fg='#e94560')
-    label_info.pack(pady=(10, 20))
+        self.label_info = QLabel("Register Face Recognition")
+        layout.addWidget(self.label_info)
 
-    btn_font = ('Helvetica', 12)
-    btn_padding = {'padx': 10, 'pady': 5}
+        self.btn_rekam = QPushButton("Record")
+        self.btn_rekam.clicked.connect(self.ask_user_details)
+        layout.addWidget(self.btn_rekam)
 
-    btn_rekam = tk.Button(window, text="Record", command=ask_user_details, bg='#0f3460', fg='#e94560', font=btn_font, **btn_padding)
-    btn_rekam.pack(pady=10)
+        self.btn_encrypt = QPushButton("Encrypt Dataset")
+        self.btn_encrypt.clicked.connect(self.request_encryption_key)
+        layout.addWidget(self.btn_encrypt)
 
-    btn_training = tk.Button(window, text="Training", command=lambda: run_script('training.py'), bg='#0f3460', fg='#e94560', font=btn_font, **btn_padding)
-    btn_training.pack(pady=10)
+        self.btn_training = QPushButton("Training")
+        self.btn_training.clicked.connect(lambda: self.run_script('training.py'))
+        layout.addWidget(self.btn_training)
 
-    btn_scan = tk.Button(window, text="Scan", command=lambda: run_script('scan.py'), bg='#0f3460', fg='#e94560', font=btn_font, **btn_padding)
-    btn_scan.pack(pady=(10, 40))
+        self.btn_scan = QPushButton("Scan")
+        self.btn_scan.clicked.connect(lambda: self.run_script('scan.py'))
+        layout.addWidget(self.btn_scan)
 
-    label_action = tk.Label(window, text="Secure Your Dataset", font=('Helvetica', 14), bg='#1a1a2e', fg='#e94560')
-    label_action.pack(pady=(10, 10))
+        self.setLayout(layout)
 
-    btn_encrypt = tk.Button(window, text="Encrypt", command=lambda: run_script('encrypt_dataset.py'), bg='#0f3460', fg='#e94560', font=btn_font, **btn_padding)
-    btn_encrypt.pack(pady=10)
+    def request_encryption_key(self):
+        key, okPressed = QInputDialog.getText(self, "Enter Encryption Key", "Enter an encryption key (exactly 16 characters):", QLineEdit.Normal, "")
+        if okPressed and len(key) == 16:
+            self.run_encryption_script('1encrypt.py', encryption_key=key)
+        elif okPressed:
+            QMessageBox.warning(self, "Invalid Key", "The key must be exactly 16 characters long.")
 
-    btn_decrypt = tk.Button(window, text="Decrypt", command=lambda: run_script('decrypt.py'), bg='#0f3460', fg='#e94560', font=btn_font, **btn_padding)
-    btn_decrypt.pack(pady=10)
+    def run_encryption_script(self, script_name, encryption_key):
+        thread = EncryptionThread(script_name, encryption_key=encryption_key)
+        thread.finished.connect(self.show_message)
+        thread.start()
+        self.active_threads.append(thread)  # Add the thread to the list to keep reference
+
+    def run_script(self, script_name, id=None, name=None):
+        args = ['python', os.path.join(base_dir, script_name)]
+        if id and name:
+            args.extend([id, name])
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, check=True)
+            QMessageBox.information(self, "Script Output", result.stdout)
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Script Error", e.stderr)
+
+    def show_message(self, message):
+        QMessageBox.information(self, "Script Output", message)
+        self.cleanup_threads()
+
+    def cleanup_threads(self):
+        self.active_threads = [t for t in self.active_threads if t.isRunning()]
+
+    def ask_user_details(self):
+        id, okPressed = QInputDialog.getText(self, "Input", "Enter ID:", QLineEdit.Normal, "")
+        name, okPressed = QInputDialog.getText(self, "Input", "Enter Name:", QLineEdit.Normal, "")
+        if okPressed and id and name:
+            message = self.check_duplicate(id, name)
+            if not message:
+                self.run_script('rekam.py', id=id, name=name)
+            else:
+                QMessageBox.warning(self, "Duplicate", message)
+
+    def check_duplicate(self, id, name):
+        try:
+            with open(csv_file, mode='r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    if row['ID'] == id or row['Nama'] == name:
+                        return f"ID {id} or Name {name} already exists in the database."
+        except FileNotFoundError:
+            return "File not found."
+        return None
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    create_app(root)
-    root.mainloop()
+    app = QApplication(sys.argv)
+    ex = App()
+    ex.show()
+    sys.exit(app.exec_())

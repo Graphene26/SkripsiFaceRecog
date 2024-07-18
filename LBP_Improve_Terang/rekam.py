@@ -22,19 +22,13 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 id, nama = sys.argv[1], sys.argv[2]
-base_dir = r"D:\Skripsi\Code Progress\Final Code\LBP_Improve_Terang"  # Use raw string
+base_dir = r'LBP_Improve_Terang'
 csv_file = os.path.join(base_dir, 'database.csv')
-image_dir = base_dir
-
-if not os.path.exists(image_dir):
-    os.makedirs(image_dir)
-
-if check_duplicate(id, nama, csv_file):
-    sys.exit(1)
+image_dir = (os.path.join(base_dir, 'Dataset'))
 
 camera = 0
 video = cv2.VideoCapture(camera, cv2.CAP_DSHOW)
-faceDeteksi = cv2.CascadeClassifier(os.path.join(base_dir, "lbpcascade_frontalface_improved.xml"))
+faceDeteksi = cv2.CascadeClassifier(os.path.join(base_dir, "Model", "haarcascade_frontalface_default.xml"))
 
 fieldnames = ['ID', 'Nama']
 try:
@@ -53,12 +47,21 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = faceDeteksi.detectMultiScale(gray, 1.3, 5)
     for (x, y, w, h) in faces:
-        cropped_face = gray[y:y+h, x:x+w]
-        resized_face = cv2.resize(cropped_face, (240, 240))
-        cv2.imwrite(os.path.join(image_dir, f'User.{id}.{a}.jpg'), resized_face)
+        # Simpan gambar grayscale
+        cropped_face_gray = gray[y:y+h, x:x+w]
+        resized_face_gray = cv2.resize(cropped_face_gray, (240, 240))
+        cv2.imwrite(os.path.join(image_dir, f'Gray.User.{id}.{a}.jpg'), resized_face_gray)
+        
+        # Simpan gambar berwarna
+        cropped_face_color = frame[y:y+h, x:x+w]
+        resized_face_color = cv2.resize(cropped_face_color, (240, 240))
+        cv2.imwrite(os.path.join(image_dir, f'Color.User.{id}.{a}.jpg'), resized_face_color)
+        
+        # Tampilkan kotak deteksi pada jendela
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        
     cv2.imshow("Face Recognition Window", frame)
-    if cv2.waitKey(500) == ord('q') or a > 49:
+    if cv2.waitKey(500) == ord('q') or a > 24:
         print("Recording completed.")
         break
 
