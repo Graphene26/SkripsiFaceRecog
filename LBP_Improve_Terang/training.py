@@ -28,13 +28,13 @@ def getImagesWithLabels(path):
     return faceSamples, Ids
 
 # Get images and labels from dataset
-faces, Ids = getImagesWithLabels(os.path.join(base_dir, 'Dataset'))
+faces, Ids = getImagesWithLabels(os.path.join(base_dir, 'Hasil Decrypt'))
 
 # Train the face recognizer using the dataset
 recognizer.train(faces, np.array(Ids))
 
 # Save the trained face recognition model
-recognizer.save(os.path.join(base_dir, 'Dataset', 'lbp_terang1gelap.xml'))
+recognizer.save(os.path.join(base_dir, 'Dataset', 'lbp.xml'))
 
 # Print a message indicating that training has completed
 print("Model Training Telah Selesai")

@@ -20,9 +20,10 @@ class EncryptionThread(QThread):
         args = ['python', os.path.join(base_dir, self.script_name), self.encryption_key]
         try:
             result = subprocess.run(args, capture_output=True, text=True, check=True)
-            self.finished.emit(result.stdout)
+            self.finished.emit(self.script_name + ": " + result.stdout)  # Include script name in the message
         except subprocess.CalledProcessError as e:
-            self.finished.emit("Error: " + e.stderr)
+            self.finished.emit(self.script_name + ": Error - " + e.stderr)  # Include script name in the error message
+
 
 class App(QWidget):
     def __init__(self):
@@ -46,6 +47,10 @@ class App(QWidget):
         self.btn_encrypt.clicked.connect(self.request_encryption_key)
         layout.addWidget(self.btn_encrypt)
 
+        self.btn_decrypt = QPushButton("Decrypt Dataset")
+        self.btn_decrypt.clicked.connect(self.request_decryption_key)
+        layout.addWidget(self.btn_decrypt)
+
         self.btn_training = QPushButton("Training")
         self.btn_training.clicked.connect(lambda: self.run_script('training.py'))
         layout.addWidget(self.btn_training)
@@ -63,11 +68,18 @@ class App(QWidget):
         elif okPressed:
             QMessageBox.warning(self, "Invalid Key", "The key must be exactly 16 characters long.")
 
+    def request_decryption_key(self):
+        key, okPressed = QInputDialog.getText(self, "Enter Decryption Key", "Enter the decryption key (exactly 16 characters):", QLineEdit.Normal, "")
+        if okPressed and len(key) == 16:
+            self.run_encryption_script('decrypt.py', encryption_key=key)
+        elif okPressed:
+            QMessageBox.warning(self, "Invalid Key", "The key must be exactly 16 characters long.")
+
     def run_encryption_script(self, script_name, encryption_key):
         thread = EncryptionThread(script_name, encryption_key=encryption_key)
         thread.finished.connect(self.show_message)
         thread.start()
-        self.active_threads.append(thread)  # Add the thread to the list to keep reference
+        self.active_threads.append(thread)
 
     def run_script(self, script_name, id=None, name=None):
         args = ['python', os.path.join(base_dir, script_name)]
@@ -80,8 +92,13 @@ class App(QWidget):
             QMessageBox.critical(self, "Script Error", e.stderr)
 
     def show_message(self, message):
-        QMessageBox.information(self, "Script Output", message)
+        if 'decrypt.py' in message:
+            QMessageBox.information(self, "Script Output", "File telah terdekripsi")
+        else:
+            QMessageBox.information(self, "Script Output", message)
         self.cleanup_threads()
+
+
 
     def cleanup_threads(self):
         self.active_threads = [t for t in self.active_threads if t.isRunning()]

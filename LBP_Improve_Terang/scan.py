@@ -14,7 +14,7 @@ video = cv2.VideoCapture(camera, cv2.CAP_DSHOW)
 
 # Face Recognition Setup
 cascade_path = os.path.join(base_dir, 'Model', 'lbpcascade_frontalface_improved.xml')
-model_path = os.path.join(base_dir, 'Dataset', 'lbp_terang1.xml')
+model_path = os.path.join(base_dir, 'Dataset', 'lbp_terang4.xml')
 
 faceDeteksi = cv2.CascadeClassifier(cascade_path)
 recognizer = cv2.face.LBPHFaceRecognizer_create()

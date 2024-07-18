@@ -50,12 +50,7 @@ while True:
         # Simpan gambar grayscale
         cropped_face_gray = gray[y:y+h, x:x+w]
         resized_face_gray = cv2.resize(cropped_face_gray, (240, 240))
-        cv2.imwrite(os.path.join(image_dir, f'Gray.User.{id}.{a}.jpg'), resized_face_gray)
-        
-        # Simpan gambar berwarna
-        cropped_face_color = frame[y:y+h, x:x+w]
-        resized_face_color = cv2.resize(cropped_face_color, (240, 240))
-        cv2.imwrite(os.path.join(image_dir, f'Color.User.{id}.{a}.jpg'), resized_face_color)
+        cv2.imwrite(os.path.join(image_dir, f'User.{id}.{a}.jpg'), resized_face_gray)
         
         # Tampilkan kotak deteksi pada jendela
         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
